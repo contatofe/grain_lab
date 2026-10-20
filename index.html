@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Grain Lab — Image processor</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Grain Lab<span>IMAGE PROCESSOR // v.01</span></h1>
+      <div class="header-right">
+        ><span class="version">ESTUDO DE TEXTURA, LUZ & MATÉRIA</span>
+      </div>
+    </header>
+    <main class="layout">
+      <aside class="stack left">
+        <section class="window">
+          <div class="titlebar">
+            Source.input
+            <div class="window-mark" aria-hidden="true"><i></i><i></i></div>
+          </div>
+          <div class="inner">
+            <button class="upload" id="upload">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1"
+              >
+                <path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6" /></svg
+              ><span>Carregar imagem</span></button
+            ><input
+              id="file"
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/avif"
+              hidden
+            />
+            <div class="file-info" id="fileInfo">
+              torus.generated<br />1024 × 1024 / demonstração
+            </div>
+            <div class="source-extra">
+              <div style="height: 23px"></div>
+              <span class="label">OU EXPERIMENTE UMA FORMA</span>
+              <div class="demo-buttons">
+                <button id="torus" class="active">Torus</button
+                ><button id="sphere">Esfera</button>
+              </div>
+              <p class="help">
+                Arraste uma imagem para a área de visualização.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section class="window presets-window">
+          <div class="titlebar">
+            Texture.presets<span aria-hidden="true">─</span>
+          </div>
+          <div class="inner">
+            <button class="preset active" data-preset="dust">
+              <span>Poeira</span><small>FINO</small></button
+            ><button class="preset" data-preset="erosion">
+              <span>Erosão</span><small>BRUTO</small></button
+            ><button class="preset" data-preset="organic">
+              <span>Orgânico</span><small>FIBRA</small>
+            </button>
+            <p class="preset-note" id="presetNote">Grão fino.</p>
+          </div>
+        </section>
+        <section class="window">
+          <div class="titlebar">
+            Output.export<span aria-hidden="true">─</span>
+          </div>
+          <div class="inner">
+            <label class="select-row" for="resolution"
+              ><span>Resolução</span
+              ><select id="resolution">
+                <option value="1024">1024 px</option>
+                <option value="2048" selected>2048 px</option>
+                <option value="4096">4096 px</option>
+                <option value="source">Original*</option>
+              </select></label
+            ><label
+              style="
+                display: flex;
+                gap: 8px;
+                align-items: center;
+                font-size: 10px;
+                margin-bottom: 15px;
+              "
+              ><input type="checkbox" id="transparent" /> Fundo
+              transparente</label
+            ><button id="export" class="primary full">Exportar PNG</button>
+            <div id="notice" role="status" aria-live="polite">
+              Pronto para experimentar.
+            </div>
+            <details>
+              <summary>Como obter o melhor resultado</summary>
+              <p class="help">
+                Objetos com luz marcada e fundo escuro se aproximam mais das
+                referências. Este efeito não recorta o objeto: fundos claros
+                também recebem grão.
+              </p>
+              <p class="help">
+                Dissolução retira grãos das regiões de menor luz. O zoom 100%
+                mostra os pixels da prévia. A textura mantém a escala relativa
+                na exportação.
+              </p>
+              <p class="help">
+                * Original: até 4096 px no lado maior. SVG e imagens animadas
+                não são aceitos.
+              </p>
+            </details>
+          </div>
+        </section>
+      </aside>
+      <div class="stack center">
+        <section class="window">
+          <div class="titlebar">
+            Render.viewport
+            <div class="window-mark" aria-hidden="true">
+              <i></i><i></i><i></i>
+            </div>
+          </div>
+          <div class="canvas-tools">
+            <div class="tool-group">
+              <button id="processed" class="active" aria-pressed="true">
+                Tratada</button
+              ><button id="original" aria-pressed="false">Original</button>
+            </div>
+            <div class="tool-group">
+              <button id="zoom" aria-pressed="false">Zoom 100%</button
+              ><button id="random">Nova textura</button>
+            </div>
+          </div>
+          <div class="viewport" id="viewport">
+            <canvas
+              id="render"
+              width="900"
+              height="900"
+              aria-label="Prévia da imagem com tratamento de grão"
+            ></canvas>
+          </div>
+          <div class="viewport-caption">
+            <span id="renderState">POEIRA / STOCHASTIC GRAIN</span
+            ><span id="seedLabel">SEED 146642</span>
+          </div>
+        </section>
+        <section class="window">
+          <div class="titlebar">Signal.analysis<span id="timing">—</span></div>
+          <div class="inner curve-row">
+            <div>
+              <canvas
+                id="histogram"
+                class="histogram"
+                width="400"
+                height="85"
+                aria-label="Distribuição de luminosidade da imagem tratada"
+              ></canvas>
+              <div class="hist-label">
+                <span>SOMBRA</span><span>DISTRIBUIÇÃO DE LUZ</span
+                ><span>LUZ</span>
+              </div>
+            </div>
+            <div class="recipe">
+              PIPELINE<br /><strong
+                >Luminância → Curva tonal<br />→ Campo de grão → Duotone</strong
+              ><br />Textura fixa durante os ajustes.
+            </div>
+          </div>
+        </section>
+      </div>
+      <aside class="stack right">
+        <section class="window">
+          <div class="titlebar">
+            Parameters.control<button
+              id="reset"
+              title="Restaurar preset"
+              style="
+                min-height: 0;
+                padding: 0 3px;
+                border: 0;
+                color: #000;
+                background: transparent;
+                font-size: 10px;
+              "
+            >
+              Reset
+            </button>
+          </div>
+          <div class="section">
+            <select
+              class="mobile-presets"
+              id="mobilePreset"
+              aria-label="Preset de textura"
+            >
+              <option value="dust">Poeira</option>
+              <option value="erosion">Erosão</option>
+              <option value="organic">Orgânico</option>
+            </select>
+            <h2 class="section-heading">Luz & contraste <span>TONAL</span></h2>
+            <div id="tonalControls"></div>
+          </div>
+          <div class="section">
+            <h2 class="section-heading">Matéria <span>GRAIN</span></h2>
+            <div id="grainControls"></div>
+          </div>
+          <div class="section">
+            <h2 class="section-heading">Duotone <span>COLOR</span></h2>
+            <div class="colors">
+              <label class="color-control"
+                ><input id="ink" type="color" value="#efefea" />Grão</label
+              ><label class="color-control"
+                ><input id="paper" type="color" value="#000000" />Fundo</label
+              >
+            </div>
+            <label
+              class="control"
+              style="
+                display: flex;
+                gap: 8px;
+                align-items: center;
+                margin-top: 14px;
+                font-size: 10px;
+              "
+              ><input type="checkbox" id="invert" /> Inverter
+              luminosidade</label
+            >
+          </div>
+        </section>
+      </aside>
+    </main>
+    <footer class="foot">
+      <span>GRAIN LAB // </span
+      ><span
+        >SUA IMAGEM FICA APENAS NO SEU NAVEGADOR · PNG / JPG / WEBP / AVIF</span
+      >
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>
